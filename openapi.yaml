@@ -1,0 +1,527 @@
+openapi: 3.1.0
+info:
+  title: Contrato de Consulta de Cuentas - Open Banking
+  description: |
+    API para la consulta de cuentas en Open Banking conforme a los estándares FAPI/PSD2.
+    Maneja idempotencia, timeouts y consentimientos para operaciones de consulta de saldos
+    y movimientos de cuentas.
+  version: 1.0.0
+  contact:
+    name: Equipo de Integración Financiera
+    email: integracion@banco.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+servers:
+  - url: https://api.banco.com/open-banking/v1
+    description: Servidor de producción
+  - url: https://sandbox.api.banco.com/open-banking/v1
+    description: Servidor de sandbox para pruebas
+paths:
+  /accounts:
+    get:
+      tags:
+        - Accounts
+      summary: Consulta de cuentas disponibles
+      description: |
+        Retorna la lista de cuentas asociadas al consentimiento otorgado por el titular.
+        Requiere scope `accounts` y consentimiento activo.
+      operationId: getAccounts
+      security:
+        - fapiAuth:
+            - accounts
+      parameters:
+        - $ref: '#/components/parameters/xIdempotencyKey'
+        - $ref: '#/components/parameters/xRequestId'
+        - $ref: '#/components/parameters/ConsentId'
+      responses:
+        '200':
+          description: Lista de cuentas recuperada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountsResponse'
+              examples:
+                success:
+                  value:
+                    accounts:
+                      - account_id: "a3d4e5f6-7890-1234-5678-9abcdef01234"
+                        iban: "ES9121000418450200051332"
+                        currency: "EUR"
+                        account_type: "CURRENT"
+                        status: "ENABLED"
+                        balances:
+                          - balance_type: "CLOSING_AVAILABLE"
+                            amount:
+                              value: 1250.30
+                              currency: "EUR"
+                      - account_id: "b4c5d6e7-8901-2345-6789-0abcdef12345"
+                        iban: "ES7921000418450200051340"
+                        currency: "EUR"
+                        account_type: "SAVINGS"
+                        status: "ENABLED"
+                        balances:
+                          - balance_type: "CLOSING_AVAILABLE"
+                            amount:
+                              value: 5420.75
+                              currency: "EUR"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /accounts/{accountId}/balances:
+    get:
+      tags:
+        - Balances
+      summary: Consulta de saldos de una cuenta
+      description: |
+        Retorna los saldos disponibles para una cuenta específica.
+        Requiere scope `balances` y consentimiento activo para la cuenta solicitada.
+      operationId: getAccountBalances
+      security:
+        - fapiAuth:
+            - balances
+      parameters:
+        - $ref: '#/components/parameters/xIdempotencyKey'
+        - $ref: '#/components/parameters/xRequestId'
+        - $ref: '#/components/parameters/ConsentId'
+        - $ref: '#/components/parameters/AccountId'
+      responses:
+        '200':
+          description: Saldos recuperados exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalancesResponse'
+              examples:
+                success:
+                  value:
+                    account_id: "a3d4e5f6-7890-1234-5678-9abcdef01234"
+                    balances:
+                      - balance_type: "CLOSING_AVAILABLE"
+                        amount:
+                          value: 1250.30
+                          currency: "EUR"
+                      - balance_type: "CLOSING_BOOKED"
+                        amount:
+                          value: 1200.00
+                          currency: "EUR"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /accounts/{accountId}/transactions:
+    get:
+      tags:
+        - Transactions
+      summary: Consulta de movimientos de una cuenta
+      description: |
+        Retorna los movimientos de una cuenta específica en un rango de fechas.
+        Requiere scope `transactions` y consentimiento activo para la cuenta solicitada.
+      operationId: getAccountTransactions
+      security:
+        - fapiAuth:
+            - transactions
+      parameters:
+        - $ref: '#/components/parameters/xIdempotencyKey'
+        - $ref: '#/components/parameters/xRequestId'
+        - $ref: '#/components/parameters/ConsentId'
+        - $ref: '#/components/parameters/AccountId'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Movimientos recuperados exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionsResponse'
+              examples:
+                success:
+                  value:
+                    account_id: "a3d4e5f6-7890-1234-5678-9abcdef01234"
+                    transactions:
+                      - transaction_id: "txn_550e8400-e29b-41d4-a716-446655440000"
+                        amount:
+                          value: -50.00
+                          currency: "EUR"
+                        status: "BOOKED"
+                        booking_date: "2023-10-15"
+                        value_date: "2023-10-14"
+                        remittance_information: "Compra en SUPERMERCADO ABC"
+                      - transaction_id: "txn_550e8400-e29b-41d4-a716-446655440001"
+                        amount:
+                          value: 1200.00
+                          currency: "EUR"
+                        status: "BOOKED"
+                        booking_date: "2023-10-10"
+                        value_date: "2023-10-10"
+                        remittance_information: "Nómina OCT2023"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    fapiAuth:
+      type: oauth2
+      description: |
+        Autenticación FAPI con flujo de código de autorización y PKCE.
+        Scopes requeridos:
+        - `accounts`: Acceso a información de cuentas
+        - `balances`: Acceso a saldos
+        - `transactions`: Acceso a movimientos
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.banco.com/oauth2/authorize
+          tokenUrl: https://auth.banco.com/oauth2/token
+          scopes:
+            accounts: Acceso a cuentas
+            balances: Acceso a saldos
+            transactions: Acceso a movimientos
+          refreshUrl: https://auth.banco.com/oauth2/token
+
+  parameters:
+    xIdempotencyKey:
+      name: x-idempotency-key
+      in: header
+      description: |
+        Clave de idempotencia para garantizar que operaciones con la misma clave
+        dentro de 24 horas produzcan el mismo resultado.
+        Formato: UUIDv4.
+      required: true
+      schema:
+        type: string
+        format: uuid
+        example: "550e8400-e29b-41d4-a716-446655440000"
+    xRequestId:
+      name: x-request-id
+      in: header
+      description: Identificador único de la solicitud para trazabilidad.
+      required: true
+      schema:
+        type: string
+        format: uuid
+        example: "550e8400-e29b-41d4-a716-446655440001"
+    ConsentId:
+      name: Consent-Id
+      in: header
+      description: Identificador del consentimiento otorgado por el titular.
+      required: true
+      schema:
+        type: string
+        format: uuid
+        example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+    AccountId:
+      name: accountId
+      in: path
+      description: Identificador único de la cuenta.
+      required: true
+      schema:
+        type: string
+        format: uuid
+        example: "a3d4e5f6-7890-1234-5678-9abcdef01234"
+    DateFrom:
+      name: dateFrom
+      in: query
+      description: Fecha inicial para la consulta de movimientos (formato ISO 8601).
+      required: true
+      schema:
+        type: string
+        format: date
+        example: "2023-10-01"
+    DateTo:
+      name: dateTo
+      in: query
+      description: Fecha final para la consulta de movimientos (formato ISO 8601).
+      required: true
+      schema:
+        type: string
+        format: date
+        example: "2023-10-31"
+    Limit:
+      name: limit
+      in: query
+      description: Número máximo de movimientos a retornar.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 100
+        example: 50
+
+  schemas:
+    Amount:
+      type: object
+      required:
+        - value
+        - currency
+      properties:
+        value:
+          type: number
+          format: decimal
+          example: 1250.30
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          example: "EUR"
+    Account:
+      type: object
+      required:
+        - account_id
+        - iban
+        - currency
+        - account_type
+        - status
+      properties:
+        account_id:
+          type: string
+          format: uuid
+          example: "a3d4e5f6-7890-1234-5678-9abcdef01234"
+        iban:
+          type: string
+          pattern: "^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$"
+          example: "ES9121000418450200051332"
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          example: "EUR"
+        account_type:
+          type: string
+          enum: [CURRENT, SAVINGS, LOAN, CREDIT_CARD]
+          example: "CURRENT"
+        status:
+          type: string
+          enum: [ENABLED, DISABLED, DELETED]
+          example: "ENABLED"
+        balances:
+          type: array
+          items:
+            $ref: '#/components/schemas/Balance'
+    Balance:
+      type: object
+      required:
+        - balance_type
+        - amount
+      properties:
+        balance_type:
+          type: string
+          enum: [CLOSING_AVAILABLE, CLOSING_BOOKED, EXPECTED, INTERIM_AVAILABLE]
+          example: "CLOSING_AVAILABLE"
+        amount:
+          $ref: '#/components/schemas/Amount'
+    Transaction:
+      type: object
+      required:
+        - transaction_id
+        - amount
+        - status
+        - booking_date
+        - value_date
+      properties:
+        transaction_id:
+          type: string
+          example: "txn_550e8400-e29b-41d4-a716-446655440000"
+        amount:
+          $ref: '#/components/schemas/Amount'
+        status:
+          type: string
+          enum: [BOOKED, PENDING, CANCELLED, REJECTED]
+          example: "BOOKED"
+        booking_date:
+          type: string
+          format: date
+          example: "2023-10-15"
+        value_date:
+          type: string
+          format: date
+          example: "2023-10-14"
+        remittance_information:
+          type: string
+          example: "Compra en SUPERMERCADO ABC"
+    AccountsResponse:
+      type: object
+      required:
+        - accounts
+      properties:
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Account'
+    BalancesResponse:
+      type: object
+      required:
+        - account_id
+        - balances
+      properties:
+        account_id:
+          type: string
+          format: uuid
+          example: "a3d4e5f6-7890-1234-5678-9abcdef01234"
+        balances:
+          type: array
+          items:
+            $ref: '#/components/schemas/Balance'
+    TransactionsResponse:
+      type: object
+      required:
+        - account_id
+        - transactions
+      properties:
+        account_id:
+          type: string
+          format: uuid
+          example: "a3d4e5f6-7890-1234-5678-9abcdef01234"
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - error_description
+        - timestamp
+      properties:
+        error:
+          type: string
+          example: "invalid_request"
+        error_description:
+          type: string
+          example: "El parámetro 'dateFrom' es obligatorio"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2023-10-15T14:30:00Z"
+        error_uri:
+          type: string
+          format: uri
+          example: "https://docs.banco.com/errors/invalid_request"
+
+  responses:
+    BadRequest:
+      description: Solicitud mal formada
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalid_parameter:
+              value:
+                error: "invalid_request"
+                error_description: "El parámetro 'dateFrom' es obligatorio"
+                timestamp: "2023-10-15T14:30:00Z"
+    Unauthorized:
+      description: No autorizado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalid_token:
+              value:
+                error: "invalid_token"
+                error_description: "El token de acceso es inválido o ha expirado"
+                timestamp: "2023-10-15T14:30:00Z"
+    Forbidden:
+      description: Prohibido - consentimiento revocado o insuficiente
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            consent_revoked:
+              value:
+                error: "consent_revoked"
+                error_description: "El consentimiento ha sido revocado por el titular"
+                timestamp: "2023-10-15T14:30:00Z"
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            account_not_found:
+              value:
+                error: "not_found"
+                error_description: "La cuenta solicitada no existe o no está accesible"
+                timestamp: "2023-10-15T14:30:00Z"
+    Conflict:
+      description: Conflicto por idempotencia
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            idempotency_conflict:
+              value:
+                error: "conflict"
+                error_description: "Ya existe una operación con la misma clave de idempotencia"
+                timestamp: "2023-10-15T14:30:00Z"
+    TooManyRequests:
+      description: Demasiadas solicitudes (throttling)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            rate_limit_exceeded:
+              value:
+                error: "too_many_requests"
+                error_description: "Límite de solicitudes excedido. Intente nuevamente en 60 segundos."
+                timestamp: "2023-10-15T14:30:00Z"
+    InternalServerError:
+      description: Error interno del servidor
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            server_error:
+              value:
+                error: "server_error"
+                error_description: "Error interno del servidor. Intente nuevamente más tarde."
+                timestamp: "2023-10-15T14:30:00Z"
+    GatewayTimeout:
+      description: Timeout del buró de riesgos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            gateway_timeout:
+              value:
+                error: "gateway_timeout"
+                error_description: "El buró de riesgos no respondió en el tiempo esperado"
+                timestamp: "2023-10-15T14:30:00Z"

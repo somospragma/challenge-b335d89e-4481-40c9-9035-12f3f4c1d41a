@@ -1,0 +1,57 @@
+campo_origen,campo_destino,tipo,obligatorio,regla_transformacion,ejemplo
+consent_id,consentId,string,SI,UUIDv4 a UUIDv4 (sin transformación),"a1b2c3d4-e5f6-7890-1234-567890abcdef"
+account_id,id_cuenta,string,SI,UUIDv4 a UUIDv4 (formato PSP a estándar),"a3d4e5f6-7890-1234-5678-9abcdef01234"
+account_number,iban,string,SI,Conversión de número de cuenta a IBAN según ISO 13616,"ES9121000418450200051332"
+account_type,tipo_cuenta,string,SI,Mapeo de valores: CURRENT→CUENTA_CORRIENTE, SAVINGS→CUENTA_AHORRO,"CUENTA_CORRIENTE"
+balance_type,tipo_saldo,string,SI,Mapeo de valores: CLOSING_AVAILABLE→SALDO_DISPONIBLE, CLOSING_BOOKED→SALDO_CONTABLE,"SALDO_DISPONIBLE"
+amount,monto,decimal,SI,Valor numérico con 2 decimales (sin transformación),1250.30
+currency,moneda,string,SI,Código ISO 4217 (3 letras),"EUR"
+status,estado,string,SI,Mapeo de valores: ENABLED→ACTIVA, DISABLED→INACTIVA, DELETED→ELIMINADA,"ACTIVA"
+transaction_id,id_transaccion,string,SI,UUIDv4 a UUIDv4 (sin transformación),"txn_550e8400-e29b-41d4-a716-446655440000"
+transaction_amount,monto_transaccion,decimal,SI,Valor numérico con signo (negativo para débitos),-50.00
+booking_date,fecha_contable,date,SI,Fecha en formato ISO 8601 (YYYY-MM-DD),"2023-10-15"
+value_date,fecha_valor,date,SI,Fecha en formato ISO 8601 (YYYY-MM-DD),"2023-10-14"
+remittance_info,descripcion,string,NO,Texto libre (máximo 140 caracteres),"Compra en SUPERMERCADO ABC"
+originator_id,id_originador,string,SI,Identificador del originador (formato alfanumérico),"originador_123"
+channel,canal,string,SI,Mapeo de valores: MOBILE→APP_MOVIL, WEB→PORTAL_WEB, API→INTERFAZ_API,"APP_MOVIL"
+operation_number,numero_operacion,string,SI,Identificador único de operación (formato alfanumérico),"OP20231015143000"
+
+## Reglas de Transformación Adicionales
+1. **IBAN**:
+   - El sistema origen puede enviar el número de cuenta en formato nacional (ej. `00418450200051332`).
+   - El mapeo debe convertirlo a IBAN según el estándar ISO 13616 (ej. `ES9121000418450200051332`).
+
+2. **Tipos de Cuenta**:
+   - El sistema origen usa valores en inglés (`CURRENT`, `SAVINGS`).
+   - El destino espera valores en español (`CUENTA_CORRIENTE`, `CUENTA_AHORRO`).
+
+3. **Montos**:
+   - Los montos deben mantener **2 decimales** y el signo (negativo para débitos).
+   - Ejemplo: `50.0` (origen) → `-50.00` (destino) para una transacción de débito.
+
+4. **Fechas**:
+   - Las fechas deben convertirse a formato ISO 8601 (`YYYY-MM-DD`).
+   - Ejemplo: `15/10/2023` (origen) → `2023-10-15` (destino).
+
+5. **Descripciones**:
+   - Las descripciones deben truncarse a **140 caracteres** si superan ese límite.
+   - Ejemplo: `"Pago de servicio de telefonía móvil con número 600123456"` → `"Pago de servicio de telefonía móvil..."`.
+
+## Validaciones de Obligatoriedad
+| Campo               | Obligatorio | Validación                                                                                     |
+|---------------------|-------------|------------------------------------------------------------------------------------------------|
+| consent_id          | SI          | UUIDv4 válido.                                                                                 |
+| account_id          | SI          | UUIDv4 válido.                                                                                 |
+| iban                | SI          | Formato IBAN válido (ISO 13616).                                                              |
+| account_type        | SI          | Valor en lista: `CUENTA_CORRIENTE`, `CUENTA_AHORRO`, `PRESTAMO`, `TARJETA_CREDITO`.             |
+| balance_type        | SI          | Valor en lista: `SALDO_DISPONIBLE`, `SALDO_CONTABLE`, `SALDO_ESPERADO`.                       |
+| amount              | SI          | Valor numérico con 2 decimales.                                                                |
+| currency            | SI          | Código ISO 4217 (3 letras).                                                                    |
+| status              | SI          | Valor en lista: `ACTIVA`, `INACTIVA`, `ELIMINADA`.                                             |
+| transaction_id      | SI          | UUIDv4 válido.                                                                                 |
+| transaction_amount  | SI          | Valor numérico con signo.                                                                      |
+| booking_date        | SI          | Fecha en formato ISO 8601.                                                                     |
+| value_date          | SI          | Fecha en formato ISO 8601.                                                                     |
+| originator_id       | SI          | Alfanumérico (máximo 50 caracteres).                                                           |
+| channel             | SI          | Valor en lista: `APP_MOVIL`, `PORTAL_WEB`, `INTERFAZ_API`.                                    |
+| operation_number    | SI          | Alfanumérico (máximo 30 caracteres).                                                           |
